@@ -15,10 +15,12 @@ UAnimInstance* UCGameplayAbility::GetOwnerAnimInstance() const
 	return nullptr;
 }
 
-TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(const FGameplayAbilityTargetDataHandle& TargetDataHandle, float SphereSweepRadius, bool bDrawDebug, bool bIgnoreSelf) const
+TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(const FGameplayAbilityTargetDataHandle& TargetDataHandle, float SphereSweepRadius, ETeamAttitude::Type TargetTeam, bool bDrawDebug, bool bIgnoreSelf) const
 {
 	TArray<FHitResult> OutResults;
 	TSet<AActor*> HitActors;
+
+	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
 
 	for (const TSharedPtr<FGameplayAbilityTargetData> TargetData : TargetDataHandle.Data)
 	{
@@ -44,6 +46,15 @@ TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(co
 			if (HitActors.Contains(Result.GetActor()))
 			{
 				continue;
+			}
+
+			if (OwnerTeamInterface)
+			{
+				ETeamAttitude::Type OtherActorTeamAttitude = OwnerTeamInterface->GetTeamAttitudeTowards(*Result.GetActor());
+				if (OtherActorTeamAttitude != TargetTeam)	// TargetTeam이 아니므로 아군이거나 중립이므로 무시한다. 
+				{
+					continue;
+				}
 			}
 
 			HitActors.Add(Result.GetActor());		// Prevent duplicate hits if multiple target data hit the same actor
